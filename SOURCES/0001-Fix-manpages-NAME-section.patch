@@ -1,0 +1,36 @@
+From 1cc25ae8129e399ed76f1ef85be1b7f53f61bc51 Mon Sep 17 00:00:00 2001
+From: Sebastian Kisela <skisela@redhat.com>
+Date: Mon, 6 Aug 2018 17:06:35 +0200
+Subject: [PATCH] Fix manpages NAME section
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+According to lexgrog manpage:
+"Some manual pagers require the ‘\-’ to be exactly as shown;
+mandb is more tolerant, but for compatibility with other systems
+it is nevertheless a good idea to retain the backslash."
+
+Fix the wording to make the man page check pass.
+
+Fixes: #1612764
+---
+ docs/lockdev.8 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/docs/lockdev.8 b/docs/lockdev.8
+index a7c117f..8739211 100644
+--- a/docs/lockdev.8
++++ b/docs/lockdev.8
+@@ -4,7 +4,7 @@
+ .\" Man page written by Jiri Popelka <jpopelka AT redhat DOT com>
+ .\"
+ .SH NAME
+-\fBLockdev\fR is a setgid binary,
++\fBLockdev\fR \- a setgid binary,
+ which provides a reliable way to put an exclusive lock
+ in /var/lock to devices (e.g. ttyS0) using both FSSTND and SVr4 methods,
+ so regular users don't need write access there.
+-- 
+2.14.4
+
