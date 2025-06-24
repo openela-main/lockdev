@@ -10,7 +10,7 @@
 Summary: A library for locking devices
 Name: lockdev
 Version: 1.0.4
-Release: 0.37.%{checkout}%{?dist}
+Release: 0.38.%{checkout}%{?dist}
 License: LGPLv2
 URL: https://alioth.debian.org/projects/lockdev/
 
@@ -20,6 +20,7 @@ Source0: lockdev-%{version}.%{checkout}.tar.gz
 
 Patch1: lockdev-euidaccess.patch
 Patch2: 0001-major-and-minor-functions-moved-to-sysmacros.h.patch
+Patch3: free-dl-check-devname-result.patch
 
 Requires(pre): shadow-utils
 Requires(post): glibc
@@ -54,6 +55,7 @@ package contains the development headers.
 # Replace access() calls with euidaccess() (600636#c33)
 %patch1 -p1 -b .access
 %patch2 -p1
+%patch3 -p1 -b .memleak-fix
 
 %build
 # Generate version information from git release tag
@@ -112,6 +114,10 @@ fi
 %{_includedir}/*
 
 %changelog
+* Fri Feb 21 2025 Pavol Žáčik <pzacik@redhat.com> - 1.0.4-0.38.20111007git
+- Fix memory leaks found by static analysis
+- Resolves: RHEL-80167
+
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 1.0.4-0.37.20111007git
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
   Related: rhbz#1991688
