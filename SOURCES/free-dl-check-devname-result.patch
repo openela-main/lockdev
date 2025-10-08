@@ -1,0 +1,237 @@
+diff --git a/../lockdev.c b/src/lockdev.c
+index ec86f65..26c1ba5 100644
+--- a/../lockdev.c
++++ b/src/lockdev.c
+@@ -547,6 +547,7 @@ dev_testlock(const char *devname)
+ 	 * and minor numbers
+ 	 */
+ 	if ( stat( device, &statbuf) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 
+@@ -556,8 +557,10 @@ dev_testlock(const char *devname)
+ 	 */
+ 	/* lockfile of type /var/lock/LCK..ttyS2 */
+ 	_dl_filename_2( lock, p);
+-	if ( (pid=_dl_check_lock( lock)) )
++	if ( (pid=_dl_check_lock( lock)) ) {
++		free(p);
+ 		close_n_return( pid);
++	}
+ 
+ 	/* and also check if a pid file was left around 
+ 	 * do this before the static var is wiped
+@@ -575,15 +578,17 @@ dev_testlock(const char *devname)
+ 	 * the contrary; anyway we do both tests.
+ 	 */
+ 	if (_dl_filename_1( lock, &statbuf)) {
+-		if ( (pid=_dl_check_lock( lock)) )
++		if ( (pid=_dl_check_lock( lock)) ) {
++			free(p);
+ 			close_n_return( pid);
++		}
+ 		if ( pid_read ) {
+ 			_dl_filename_0( lock, pid_read);
+ 			_dl_check_lock( lock);
+ 		}
+ 	}
+ 
+-
++	free(p);
+ 	close_n_return( 0);
+ }
+ 
+@@ -623,12 +628,14 @@ dev_lock (const char *devname)
+ 	 * and minor numbers
+ 	 */
+ 	if ( stat( device, &statbuf) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 	/* check that the caller has write permission to the device
+ 	 * to prevent denial-of-service attack by unauthorized users
+ 	 */
+ 	if ( LOCKDEV_ACCESS( device, W_OK ) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 
+@@ -645,8 +652,10 @@ dev_lock (const char *devname)
+ 	 */
+ 	/* file of type /var/lock/LCK..<pid> */
+ 	_dl_filename_0( lock0, our_pid);
+-	if ( ! (fd=fopen( lock0, "w")) )
++	if ( ! (fd=fopen( lock0, "w")) ) {
++		free(p);
+ 		close_n_return( -errno);	/* no file, no lock */
++	}
+ 	fprintf( fd, "%10d\n", (int)our_pid);
+ 	fclose( fd);
+ 
+@@ -659,6 +668,7 @@ dev_lock (const char *devname)
+ 	pid = _dl_check_lock( lock2);
+ 	if ( pid && pid != our_pid ) {
+ 		unlink( lock0);
++		free(p);
+ 		close_n_return( pid);	/* error or locked by someone else */
+ 	}
+ 	if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+@@ -675,12 +685,14 @@ dev_lock (const char *devname)
+ 			if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
+ 				int rc = -errno;
+ 				unlink( lock0);
++				free(p);
+ 				close_n_return(rc);
+ 			}
+ 		}
+ 		if ( pid != our_pid ) {
+ 			/* error or another one owns it now */
+ 			unlink( lock0);
++			free(p);
+ 			close_n_return( pid);
+ 		}
+ 		if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+@@ -696,6 +708,7 @@ dev_lock (const char *devname)
+ 			int rc = -errno;
+ 			unlink( lock0);
+ 			if (*lock1) unlink( lock1);
++			free(p);
+ 			close_n_return(rc);
+ 		}
+ 	}
+@@ -707,6 +720,7 @@ dev_lock (const char *devname)
+ 		 */
+ 		unlink( lock0);
+ 		if (*lock1) unlink( lock1);
++		free(p);
+ 		close_n_return( pid);
+ 	}
+ 	/* quite unlike, but ... */
+@@ -733,6 +747,7 @@ dev_lock (const char *devname)
+ 
+ 	if (( pid == pid2 ) && ( pid == our_pid )) {
+ 		_debug( 2, "dev_lock() got lock\n");
++		free(p);
+ 		close_n_return( 0);	/* locked by us */
+ 	}
+ 	/* oh, no! someone else stepped in! */
+@@ -749,8 +764,10 @@ dev_lock (const char *devname)
+ 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid, lock1);
+ 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid2, lock2);
+ 		_debug( 1, "dev_lock() process %d (we) have no lock!\n", (int)our_pid);
++		free(p);
+ 		close_n_return(pid);
+ 	}
++	free(p);
+ 	close_n_return( (pid + pid2));
+ }
+ 
+@@ -790,12 +807,14 @@ dev_relock (const char  *devname,
+ 	 * and minor numbers
+ 	 */
+ 	if ( stat( device, &statbuf) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 	/* check that the caller has write permission to the device
+ 	 * to prevent denial-of-service attack by unauthorized users
+ 	 */
+ 	if ( LOCKDEV_ACCESS( device, W_OK ) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 
+@@ -810,13 +829,17 @@ dev_relock (const char  *devname,
+ 	/* lockfile of type /var/lock/LCK..ttyS2 */
+ 	_dl_filename_2( lock2, p);
+ 	pid = _dl_check_lock( lock2);
+-	if ( pid && old_pid && pid != old_pid )
++	if ( pid && old_pid && pid != old_pid ) {
++		free(p);
+ 		close_n_return( pid);	/* error or locked by someone else */
++	}
+ 
+ 	if (_dl_filename_1( lock1, &statbuf)) {
+ 		pid = _dl_check_lock( lock1);
+-		if ( pid && old_pid && pid != old_pid )
++		if ( pid && old_pid && pid != old_pid ) {
++			free(p);
+ 			close_n_return( pid);	/* error or locked by someone else */
++		}
+ 	}
+ 
+ 	if ( ! pid ) {	/* not locked ??? */
+@@ -828,8 +851,10 @@ dev_relock (const char  *devname,
+ 	 * we own all the lockfiles
+ 	 */
+ 	if (*lock1) {
+-		if ( ! (fd=fopen( lock1, "w")) )
++		if ( ! (fd=fopen( lock1, "w")) ) {
++			free(p);
+ 			close_n_return( -errno);	/* something strange */
++		}
+ 		fprintf( fd, "%10d\n", (int)our_pid);
+ 		fclose( fd);
+ 	}
+@@ -837,13 +862,16 @@ dev_relock (const char  *devname,
+ 	 * the first, so we have yet modifyed it also, and this write
+ 	 * seems redundant ... but ... doesn't hurt.
+ 	 */
+-	if ( ! (fd=fopen( lock2, "w")) )
++	if ( ! (fd=fopen( lock2, "w")) ) {
+ 		/* potentially a problem */
++		free(p);
+ 		close_n_return( -errno);	/* something strange */
++	}
+ 	fprintf( fd, "%10d\n", (int)our_pid);
+ 	fclose( fd);
+ 
+ 	_debug( 2, "dev_relock() lock changed\n");
++	free(p);
+ 	close_n_return( 0);	/* locked by us */
+ }
+ 
+@@ -883,12 +911,14 @@ dev_unlock (const char *devname,
+ 	 * and minor numbers
+ 	 */
+ 	if ( stat( device, &statbuf) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 	/* check that the caller has write permission to the device
+ 	 * to prevent denial-of-service attack by unauthorized users
+ 	 */
+ 	if ( LOCKDEV_ACCESS( device, W_OK ) == -1 ) {
++		free(p);
+ 		close_n_return(-errno);
+ 	}
+ 
+@@ -899,13 +929,16 @@ dev_unlock (const char *devname,
+ 	/* lockfile of type /var/lock/LCK..ttyS2 */
+ 	_dl_filename_2( lock2, p);
+ 	wpid = _dl_check_lock( lock2);
+-	if ( pid && wpid && pid != wpid )
++	if ( pid && wpid && pid != wpid ) {
++		free(p);
+ 		close_n_return( wpid);	/* error or locked by someone else */
+-
++	}
+ 	if (_dl_filename_1( lock1, &statbuf)) {
+ 		wpid = _dl_check_lock( lock1);
+-		if ( pid && wpid && pid != wpid )
++		if ( pid && wpid && pid != wpid ) {
++			free(p);
+ 			close_n_return( wpid);	/* error or locked by someone else */
++		}
+ 	}
+ 
+ 	_dl_filename_0( lock0, wpid);
+@@ -918,6 +951,7 @@ dev_unlock (const char *devname,
+ 	unlink( lock2);
+ 	if (*lock1) unlink( lock1);
+ 	_debug( 2, "dev_unlock() unlocked\n");
++	free(p);
+ 	close_n_return( 0);	/* successfully unlocked */
+ }
+ 
